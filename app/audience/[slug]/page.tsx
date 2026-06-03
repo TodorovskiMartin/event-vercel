@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getPublicEventBySlug } from "@/lib/data/public";
+import { getRevealedResultsBySlug } from "@/lib/data/results";
 import { rankResults } from "@/lib/results";
-import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { getAlbumCoverPublicUrl } from "@/lib/storage";
 import { decodePathSegment } from "@/lib/urls";
 
@@ -25,12 +25,10 @@ export default async function AudienceResultsPage({ params }: { params: Promise<
     );
   }
 
-  const supabase = createSupabasePublicClient();
-  const { data } = await supabase.from("event_results").select("*").eq("event_id", event.id);
-  const results = rankResults(data ?? []);
-  const winner = results[0];
+  const results = rankResults(await getRevealedResultsBySlug(event.slug));
   const maxVotes = Math.max(1, ...results.map((result) => result.vote_count));
   const totalVotes = results.reduce((sum, result) => sum + result.vote_count, 0);
+  const winner = totalVotes > 0 ? results[0] : null;
   const coverUrl = getAlbumCoverPublicUrl(event.album_cover_path);
 
   return (

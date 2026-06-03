@@ -1,6 +1,6 @@
 import { getPublicEventBySlug } from "@/lib/data/public";
+import { getRevealedResultsBySlug } from "@/lib/data/results";
 import { rankResults } from "@/lib/results";
-import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { decodePathSegment } from "@/lib/urls";
 import { notFound } from "next/navigation";
 
@@ -14,9 +14,7 @@ export default async function PublicResultsPage({ params }: { params: Promise<{ 
     return <main className="min-h-screen bg-ink p-6 text-xl">Results will be revealed live by the artist.</main>;
   }
 
-  const supabase = createSupabasePublicClient();
-  const { data } = await supabase.from("event_results").select("*").eq("event_id", event.id);
-  const results = rankResults(data ?? []);
+  const results = rankResults(await getRevealedResultsBySlug(event.slug));
 
   return (
     <main className="min-h-screen bg-ink px-4 py-8">

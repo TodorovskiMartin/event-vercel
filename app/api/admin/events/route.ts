@@ -1,0 +1,54 @@
+import { NextResponse } from "next/server";
+import type { ZodIssue } from "zod";
+import { requireUser } from "@/lib/auth";
+import { eventInputSchema } from "@/lib/validation";
+
+function formatValidationIssues(issues: ZodIssue[]) {
+  return issues
+    .map((issue) => {
+      const path = issue.path.join(".");
+      return path ? `${path}: ${issue.message}` : issue.message;
+    })
+    .join(" ");
+}
+
+function withNumericSuffix(slug: string, suffix: number) {
+  const suffixText = `-${suffix}`;
+  return `${slug.slice(0, 80 - suffixText.length).trim()}${suffixText}`;
+}
+
+async function getAvailableSlug(supabase: Awaited<ReturnType<typeof requireUser>>["supabase"], requestedSlug: string) {
+  for (let suffix = 1; suffix <= 50; suffix += 1) {
+    const candidate = suffix === 1 ? requestedSlug : withNumericSuffix(requestedSlug, suffix);
+    const { data, error } = await supabase.from("events").select("id").eq("slug", candidate).maybeSingle();
+    if (error) throw error;
+    if (!data) return candidate;
+  }
+
+  return withNumericSuffix(requestedSlug, Date.now());
+}
+
+export async function POST(request: Request) {
+  const { supabase, user } = await requireUser();
+  const parsed = eventInputSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: formatValidationIssues(parsed.error.issues), issues: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const { songs, ...eventInput } = parsed.data;
+  const slug = await getAvailableSlug(supabase, eventInput.slug);
+  const { data: event, error } = await supabase
+    .from("events")
+    .insert({ ...eventInput, slug, created_by: user.id, status: "waiting", max_selections: 3 })
+    .select("id,slug")
+    .single();
+  if (error || !event) {
+    const duplicateSlug = error?.message?.includes("events_slug_key");
+    return NextResponse.json({ error: duplicateSlug ? "That slug is already in use. Try creating again and the app will choose the next available URL." : error?.message ?? "Could not create event." }, { status: 400 });
+  }
+
+  const { error: songsError } = await supabase.from("songs").insert(songs.map((song) => ({ ...song, event_id: event.id })));
+  if (songsError) return NextResponse.json({ error: songsError.message }, { status: 400 });
+
+  return NextResponse.json({ id: event.id, slug: event.slug });
+}

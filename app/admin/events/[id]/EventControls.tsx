@@ -19,7 +19,11 @@ export function EventControls({ eventId, initialStatus }: { eventId: string; ini
   const [message, setMessage] = useState("");
 
   async function changeStatus(nextStatus: EventStatus) {
-    if (!confirm(`Change event status to ${statusLabels[nextStatus]}?`)) return;
+    const warning =
+      status === "results_revealed" && nextStatus === "voting_closed"
+        ? "This will hide public results and return the event to Voting closed. You can reopen voting after that."
+        : `Change event status to ${statusLabels[nextStatus]}?`;
+    if (!confirm(warning)) return;
     setMessage("");
     const response = await fetch(`/api/admin/events/${eventId}/status`, {
       method: "POST",
@@ -62,7 +66,9 @@ export function EventControls({ eventId, initialStatus }: { eventId: string; ini
         ) : null}
         {status === "voting_open" ? <Button onClick={() => changeStatus("voting_closed")}>Close Voting</Button> : null}
         {status === "voting_closed" ? <Button onClick={() => changeStatus("results_revealed")}>Reveal Results</Button> : null}
-        {status === "results_revealed" ? <Button className="bg-zinc-200" onClick={() => changeStatus("voting_closed")}>Hide Results</Button> : null}
+        {status === "results_revealed" ? (
+          <Button className="bg-zinc-200" onClick={() => changeStatus("voting_closed")}>Back to Voting Closed</Button>
+        ) : null}
         <Button className="bg-rose text-white" onClick={resetVotes}>Reset Test Votes</Button>
       </div>
       {message ? <p className="mt-3 text-sm text-zinc-300">{message}</p> : null}

@@ -12,7 +12,11 @@ describe("event status transitions", () => {
     expect(canTransitionStatus("voting_closed", "voting_open")).toBe(true);
   });
 
-  it("rejects reopening voting after results are revealed", () => {
+  it("allows returning from revealed results to voting closed", () => {
+    expect(canTransitionStatus("results_revealed", "voting_closed")).toBe(true);
+  });
+
+  it("does not jump directly from revealed results to open voting", () => {
     expect(canTransitionStatus("results_revealed", "voting_open")).toBe(false);
   });
 });

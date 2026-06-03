@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteEventButton } from "./DeleteEventButton";
 import { EventControls } from "./EventControls";
 import { ResultsCharts } from "./ResultsCharts";
 import { requireUser } from "@/lib/auth";
@@ -29,8 +30,16 @@ export default async function AdminEventPage({ params }: { params: Promise<{ id:
       <div className="mx-auto max-w-6xl">
         <section>
           <Link className="text-neon underline" href="/admin/events">Back to events</Link>
-          <h1 className="mt-3 text-4xl font-semibold">{event.title}</h1>
-          <p className="mt-1 text-zinc-300">{event.artist_name} - {event.album_name}</p>
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-semibold">{event.title}</h1>
+              <p className="mt-1 text-zinc-300">{event.artist_name} - {event.album_name}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link className="rounded-md border border-zinc-700 px-4 py-2" href={`/admin/events/${event.id}/edit`}>Edit Event</Link>
+              <DeleteEventButton eventId={event.id} />
+            </div>
+          </div>
           <div className="mt-6"><EventControls eventId={event.id} initialStatus={event.status} /></div>
           <div className="mt-6 rounded-lg border border-zinc-800 bg-stage p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">

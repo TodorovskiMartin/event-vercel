@@ -16,13 +16,33 @@ const demoSongs = [
   "The Long Echo"
 ];
 
-export function EventForm() {
-  const [title, setTitle] = useState("Album Launch Night");
-  const [slug, setSlug] = useState("demo");
-  const [artist, setArtist] = useState("Nova Echo");
-  const [album, setAlbum] = useState("After Midnight");
+type EventFormProps = {
+  eventId?: string;
+  initialAlbum?: string;
+  initialArtist?: string;
+  initialCoverPath?: string | null;
+  initialSlug?: string;
+  initialSongs?: string[];
+  initialTitle?: string;
+  mode?: "create" | "edit";
+};
+
+export function EventForm({
+  eventId,
+  initialAlbum = "After Midnight",
+  initialArtist = "Nova Echo",
+  initialCoverPath = null,
+  initialSlug = "demo",
+  initialSongs = demoSongs,
+  initialTitle = "Album Launch Night",
+  mode = "create"
+}: EventFormProps) {
+  const [title, setTitle] = useState(initialTitle);
+  const [slug, setSlug] = useState(initialSlug);
+  const [artist, setArtist] = useState(initialArtist);
+  const [album, setAlbum] = useState(initialAlbum);
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [songs, setSongs] = useState(demoSongs);
+  const [songs, setSongs] = useState(initialSongs.length >= 3 ? initialSongs : demoSongs.slice(0, 3));
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -67,15 +87,15 @@ export function EventForm() {
       return;
     }
 
-    const response = await fetch("/api/admin/events", {
-      method: "POST",
+    const response = await fetch(mode === "edit" && eventId ? `/api/admin/events/${eventId}` : "/api/admin/events", {
+      method: mode === "edit" ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         slug,
         artist_name: artist,
         album_name: album,
-        album_cover_path: albumCoverPath,
+        album_cover_path: albumCoverPath ?? initialCoverPath,
         songs: cleanedSongs.map((song, index) => ({ track_number: index + 1, title: song }))
       })
     });
@@ -99,7 +119,7 @@ export function EventForm() {
           type="file"
           onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)}
         />
-        <span className="text-sm text-zinc-400">JPG, PNG, or WebP. Max 5 MB.</span>
+        <span className="text-sm text-zinc-400">{initialCoverPath ? "Choose a new file to replace the current cover. " : ""}JPG, PNG, or WebP. Max 5 MB.</span>
       </label>
       <div className="grid gap-2">
         <div className="flex items-center justify-between gap-3">
@@ -123,7 +143,7 @@ export function EventForm() {
         <span className="text-sm text-zinc-400">Add at least 3 songs. Guests will still choose exactly 3 favorites.</span>
       </div>
       {error ? <p className="rounded-md border border-rose/50 bg-rose/10 p-3">{error}</p> : null}
-      <Button disabled={saving}>{saving ? "Creating..." : "Create event"}</Button>
+      <Button disabled={saving}>{saving ? "Saving..." : mode === "edit" ? "Save changes" : "Create event"}</Button>
     </form>
   );
 }

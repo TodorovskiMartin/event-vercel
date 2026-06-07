@@ -48,7 +48,7 @@ export function EventControls({ eventId, initialStatus }: { eventId: string; ini
       body: JSON.stringify({ confirmation })
     });
     const data = await response.json();
-    setMessage(response.ok ? "Test votes reset." : data.error ?? "Reset failed.");
+    setMessage(response.ok ? `Votes reset. Deleted ${data.deletedCount ?? 0} vote records.` : data.error ?? "Reset failed.");
   }
 
   return (
